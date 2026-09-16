@@ -190,42 +190,88 @@
   </div>
 
   <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDImgkVuotmHPXtAYuUy_8x9Mz9JxOFd3ECny8GAPiS2NYsm74AT7q2tbG__Bqx47M-g/exec";
+    const LIFF_ID = "2011621669-IYODcfLg";
 
- 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzUMPfrYJ1Fir8Tk45L0sd0zEo7VKDH1cS5LxUK9uT81Wwq63t-5ui9CJ3AQMi_1HRb6HA/exec";
-const LIFF_ID = "2011621669-IYODcfLg";
+    let resultData = null;
+    const symbols = ["♨️", "🎰", "🍺", "🦆", "🌸", "7️⃣"];
 
-async function loadData() {
-  const loadingEl = document.getElementById("loadingText");
-  
-  try {
-    // LIFFの初期化
-    await liff.init({ liffId: LIFF_ID });
+    window.onload = async () => {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        let userName = "ゲスト";
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          userName = profile.displayName;
+        }
+        document.getElementById("user-name").innerText = `ようこそ、${userName} さん`;
 
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
+        const res = await fetch(GAS_URL);
+        resultData = await res.json();
+        
+        // 数値反映
+        document.getElementById("di-val").innerText = resultData.di;
+        
+        // ととのいゲージ（不快指数に応じてゲージが伸びる）
+        const meterPercent = Math.min(100, Math.max(30, resultData.di));
+        document.getElementById("meter-fill").style.width = meterPercent + "%";
+        document.getElementById("totonoi-text").innerText = resultData.di >= 80 
+          ? "絶好のととのい日和！冷やし炭酸泉が最高です" 
+          : "適度な温泉日和！のんびり露天風呂がおすすめ";
+
+        // 確変演出の切り替え
+        if (resultData.di >= 80) {
+          document.getElementById("fever-banner").style.display = "block";
+          document.getElementById("status-card").classList.add("fever-mode");
+          document.querySelectorAll(".reel").forEach(r => r.classList.add("fever-border"));
+          const btn = document.getElementById("spin-btn");
+          btn.classList.add("fever-btn");
+          btn.innerText = "🔥 超高確率スロットを回す！";
+        }
+
+      } catch (e) {
+        document.getElementById("status-card").innerText = "データ読み込みエラー";
+      }
+    };
+
+    function startSpin() {
+      if (!resultData) return alert("データ読み込み中です");
+      
+      const btn = document.getElementById("spin-btn");
+      btn.disabled = true;
+      document.getElementById("coupon-card").style.display = "none";
+
+      const reels = [
+        document.getElementById("reel1"),
+        document.getElementById("reel2"),
+        document.getElementById("reel3")
+      ];
+
+      reels.forEach(r => r.classList.add("spinning"));
+
+      let timer = setInterval(() => {
+        reels.forEach(r => {
+          r.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        });
+      }, 70);
+
+      setTimeout(() => {
+        clearInterval(timer);
+        reels.forEach(r => r.classList.remove("spinning"));
+
+        if (resultData.isWin) {
+          reels.forEach(r => r.innerText = "7️⃣");
+          document.getElementById("coupon-title").innerText = resultData.couponName;
+          document.getElementById("coupon-card").style.display = "block";
+        } else {
+          reels[0].innerText = "♨️";
+          reels[1].innerText = "🍺";
+          reels[2].innerText = "♨️";
+          alert("ハズレ... また挑戦してね！");
+        }
+        btn.disabled = false;
+      }, 2000);
     }
-
-    const profile = await liff.getProfile();
-    document.getElementById("userName").textContent = profile.displayName;
-
-    // GASへのアクセス
-    const response = await fetch(GAS_URL);
-    
-    if (!response.ok) {
-      throw new Error(`GAS通信失敗 (HTTP Status: ${response.status})`);
-    }
-
-    const data = await response.json();
-    updateUI(data);
-
-  } catch (error) {
-    console.error(error);
-    // エラーの詳細な内容を画面に表示する
-    loadingEl.style.color = "#ff4444";
-    loadingEl.innerHTML = `【エラー詳細】<br>${error.name}: ${error.message}`;
-  }
-}
-
-window.onload = loadData;
+  </script>
+</body>
+</html>
