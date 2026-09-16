@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>温泉スロット</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #1E1E2E; color: #fff; margin: 0; padding: 20px; }
+    .card { background: #2A1B28; border: 1px solid #FF6B6B; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+    .slot-frame { background: #1A1A28; border: 3px solid #FFD166; border-radius: 12px; padding: 20px; margin: 20px 0; }
+    .reels { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+    .reel { width: 70px; height: 90px; background: #fff; color: #333; font-size: 28px; line-height: 90px; border-radius: 8px; font-weight: bold; }
+    .btn { background: #06C755; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 30px; font-weight: bold; width: 80%; cursor: pointer; }
+    .coupon { background: #162B20; border: 2px solid #06C755; border-radius: 8px; padding: 15px; margin-top: 20px; display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div id="di-display">不快指数を計測中...</div>
+  </div>
+
+  <div class="slot-frame">
+    <div class="reels">
+      <div class="reel" id="r1">♨️</div>
+      <div class="reel" id="r2">♨️</div>
+      <div class="reel" id="r3">♨️</div>
+    </div>
+    <button class="btn" id="spin-btn" onclick="startSlot()">スロットを回す！</button>
+  </div>
+
+  <div class="coupon" id="coupon-card">
+    <h3 style="color:#FFD166; margin:0 0 10px 0;">🎉 当選クーポン獲得！</h3>
+    <div id="coupon-title" style="font-size:16px; font-weight:bold;"></div>
+  </div>
+
+  <script>
+    // Step 2で発行されたGASのWebアプリURLに差し替えてください
+    const GAS_URL = "YOUR_GAS_WEB_APP_URL"; 
+    let resultData = null;
+
+    // 画面ロード時に判定を取得
+    window.onload = async () => {
+      const res = await fetch(GAS_URL);
+      resultData = await res.json();
+      document.getElementById("di-display").innerHTML = `<b>本日エリアの不快指数：${resultData.di}</b><br><small>不快指数高めにつき確率UP中！</small>`;
+    };
+
+    function startSlot() {
+      if (!resultData) return;
+      document.getElementById("spin-btn").disabled = true;
+
+      const reels = [document.getElementById("r1"), document.getElementById("r2"), document.getElementById("r3")];
+      const targetSymbol = resultData.isWin ? "🫧" : "❌";
+
+      reels.forEach((reel, i) => {
+        setTimeout(() => {
+          reel.innerText = targetSymbol;
+          if (i === 2) finishGame();
+        }, (i + 1) * 600);
+      });
+    }
+
+    function finishGame() {
+      if (resultData.isWin) {
+        document.getElementById("coupon-title").innerText = resultData.couponName;
+        document.getElementById("coupon-card").style.display = "block";
+      } else {
+        alert("残念！また明日チャレンジしてね！");
+      }
+    }
+  </script>
+</body>
+</html>
