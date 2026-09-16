@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>温泉スロット</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root {
       --bg-color: #0d0f1d;
@@ -29,24 +30,63 @@
       font-size: 22px;
       color: var(--accent-neon);
       text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    /* 不快指数エリア */
-    #di-display {
+    /* 確変アナウンスバナー */
+    #fever-banner {
+      display: none;
+      background: linear-gradient(90deg, #ff0055, #ffe600, #ff0055);
+      background-size: 200% 200%;
+      animation: gradient-slide 2s ease infinite;
+      color: #000;
+      font-weight: bold;
+      padding: 8px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.8);
+    }
+
+    @keyframes gradient-slide {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* 情報表示カード */
+    .status-card {
       background: var(--card-bg);
       border: 1px solid var(--accent-neon);
       box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
       border-radius: 12px;
-      padding: 12px;
-      margin: 0 auto 25px auto;
+      padding: 15px;
+      margin: 0 auto 20px auto;
       max-width: 340px;
-      font-size: 15px;
-      color: #d1d5db;
+      font-size: 14px;
     }
-    #di-display b {
-      color: var(--yellow-neon);
-      font-size: 18px;
+
+    /* 確変時の枠チェンジ */
+    .status-card.fever-mode {
+      border-color: var(--pink-neon);
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+    }
+
+    /* メーター表示 */
+    .meter-container {
+      background: #15182e;
+      border-radius: 10px;
+      height: 12px;
+      width: 100%;
+      margin: 8px 0;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-neon), var(--pink-neon));
+      transition: width 1s ease-in-out;
     }
 
     /* スロット枠 */
@@ -54,7 +94,7 @@
       display: flex;
       justify-content: center;
       gap: 12px;
-      margin-bottom: 30px;
+      margin-bottom: 25px;
     }
 
     .reel {
@@ -67,19 +107,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
       transition: all 0.3s ease;
+    }
+
+    .reel.fever-border {
+      border-color: var(--yellow-neon);
+      box-shadow: 0 0 15px rgba(255, 230, 0, 0.8);
     }
 
     .reel.spinning {
       border-color: var(--pink-neon);
-      box-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
-      animation: pulse 0.2s infinite alternate;
+      animation: pulse 0.15s infinite alternate;
     }
 
     @keyframes pulse {
       from { transform: scale(1); }
-      to { transform: scale(1.03); }
+      to { transform: scale(1.04); }
     }
 
     /* ボタン */
@@ -93,39 +137,25 @@
       border-radius: 30px;
       font-size: 18px;
       font-weight: bold;
-      letter-spacing: 1px;
       cursor: pointer;
       box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
-      transition: transform 0.1s, box-shadow 0.2s;
     }
 
-    .spin-btn:active {
-      transform: scale(0.95);
-      box-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
+    .spin-btn.fever-btn {
+      background: linear-gradient(135deg, var(--yellow-neon) 0%, var(--pink-neon) 100%);
+      color: #000;
+      box-shadow: 0 0 25px rgba(255, 230, 0, 0.8);
     }
 
-    .spin-btn:disabled {
-      background: #4a4e69;
-      box-shadow: none;
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    /* クーポンカード */
     .coupon {
       display: none;
-      background: linear-gradient(135deg, rgba(255,230,0,0.15) 0%, rgba(255,0,85,0.15) 100%);
+      background: rgba(255,230,0,0.15);
       border: 2px solid var(--yellow-neon);
-      box-shadow: 0 0 20px rgba(255, 230, 0, 0.3);
+      box-shadow: 0 0 20px rgba(255, 230, 0, 0.4);
       border-radius: 16px;
       padding: 20px;
-      margin: 25px auto 0 auto;
+      margin: 20px auto 0 auto;
       max-width: 320px;
-    }
-    .coupon h3 {
-      color: var(--yellow-neon);
-      margin: 0 0 10px 0;
-      text-shadow: 0 0 8px rgba(255, 230, 0, 0.5);
     }
   </style>
 </head>
@@ -133,7 +163,18 @@
 
   <h1>温泉環境連動スロット</h1>
 
-  <div id="di-display">不快指数を計測中...</div>
+  <div id="fever-banner">🔥 不快指数80超え！当選確率70% 超確変中 🔥</div>
+
+  <div class="status-card" id="status-card">
+    <div id="user-name" style="color:var(--accent-neon); font-weight:bold; margin-bottom:5px;"></div>
+    <div>本日の不快指数: <b id="di-val" style="font-size:18px; color:var(--yellow-neon);">-</b></div>
+    
+    <div style="margin-top:10px; font-size:12px; color:#aaa;">本日の「サウナ＆外気浴ととのい度」</div>
+    <div class="meter-container">
+      <div class="meter-fill" id="meter-fill"></div>
+    </div>
+    <div id="totonoi-text" style="font-size:12px; color:var(--accent-neon);">環境分析中...</div>
+  </div>
 
   <div class="slot-container">
     <div class="reel" id="reel1">♨️</div>
@@ -144,24 +185,52 @@
   <button class="spin-btn" id="spin-btn" onclick="startSpin()">スロットを回す！</button>
 
   <div class="coupon" id="coupon-card">
-    <h3>🎉 当選クーポン獲得！</h3>
+    <h3 style="color:var(--yellow-neon); margin:0 0 10px 0;">🎉 当選クーポン獲得！</h3>
     <div id="coupon-title" style="font-size:18px; font-weight:bold; color:#fff;"></div>
   </div>
 
   <script>
-    // ★ ご自身のGAS WebアプリURLを設定してください
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzUMPfrYJ1Fir8Tk45LOsdOzEo7VKDH1c5LxUK9uT81Wwq63t-5ui9CJ3AQMi_lHRb6HA/exec";
+    const LIFF_ID = "YOUR_LIFF_ID_HERE";
 
     let resultData = null;
     const symbols = ["♨️", "🎰", "🍺", "🦆", "🌸", "7️⃣"];
 
     window.onload = async () => {
       try {
+        await liff.init({ liffId: LIFF_ID });
+        let userName = "ゲスト";
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          userName = profile.displayName;
+        }
+        document.getElementById("user-name").innerText = `ようこそ、${userName} さん`;
+
         const res = await fetch(GAS_URL);
         resultData = await res.json();
-        document.getElementById("di-display").innerHTML = `本日の不快指数: <b>${resultData.di}</b><br><small style="color:#00f3ff;">※指数に応じた高確率モード適用中</small>`;
+        
+        // 数値反映
+        document.getElementById("di-val").innerText = resultData.di;
+        
+        // ととのいゲージ（不快指数に応じてゲージが伸びる）
+        const meterPercent = Math.min(100, Math.max(30, resultData.di));
+        document.getElementById("meter-fill").style.width = meterPercent + "%";
+        document.getElementById("totonoi-text").innerText = resultData.di >= 80 
+          ? "絶好のととのい日和！冷やし炭酸泉が最高です" 
+          : "適度な温泉日和！のんびり露天風呂がおすすめ";
+
+        // 確変演出の切り替え
+        if (resultData.di >= 80) {
+          document.getElementById("fever-banner").style.display = "block";
+          document.getElementById("status-card").classList.add("fever-mode");
+          document.querySelectorAll(".reel").forEach(r => r.classList.add("fever-border"));
+          const btn = document.getElementById("spin-btn");
+          btn.classList.add("fever-btn");
+          btn.innerText = "🔥 超高確率スロットを回す！";
+        }
+
       } catch (e) {
-        document.getElementById("di-display").innerText = "データの読み込みに失敗しました";
+        document.getElementById("status-card").innerText = "データ読み込みエラー";
       }
     };
 
@@ -184,7 +253,7 @@
         reels.forEach(r => {
           r.innerText = symbols[Math.floor(Math.random() * symbols.length)];
         });
-      }, 80);
+      }, 70);
 
       setTimeout(() => {
         clearInterval(timer);
